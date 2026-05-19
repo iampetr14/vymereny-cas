@@ -690,13 +690,30 @@
         </footer>
     </div>
 
+    <!-- Knihovna Supabase - připojení na sdílenou databázi v cloudu -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
         // ========================================================
         // === VYMĚŘENÝ ČAS - JAVASCRIPT LOGIKA ===
         // ========================================================
 
-        // Klíč pro localStorage, kde se ukládají záznamy
-        const KLIC_STORAGE = 'vymereny_cas_zaznamy';
+        // ⬇⬇⬇  SEM VLOŽ ÚDAJE Z TVÉHO SUPABASE PROJEKTU  ⬇⬇⬇
+        // (Najdeš je v Supabase: Project Settings → Data API / API Keys)
+        const SUPABASE_URL = 'https://nbhewvcuyepaxyvziiec.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_MAl6k7d8GFOWactCSkiprg_zaJ25MTn';
+        // ⬆⬆⬆  -------------------------------------------  ⬆⬆⬆
+
+        // Vytvoříme klienta pro komunikaci s databází
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Název tabulky v databázi, kam se ukládají záznamy
+        const TABULKA = 'zaznamy';
+
+        // Lokální kopie záznamů z databáze (cache).
+        // Odpočet tiká každou vteřinu z této kopie, aby se
+        // databáze nedotazovala zbytečně často.
+        let zaznamyCache = [];
 
         // Reference na DOM elementy, které budeme často používat
         const formular = document.getElementById('formular-zaznam');
@@ -721,26 +738,59 @@
         let poslednVyprseleIds = '';
 
         // ----------------------------------------------------------------
-        // Pomocná funkce: získá záznamy z localStorage (vrací pole)
+        // Vrátí aktuální záznamy z lokální kopie (cache).
+        // Renderování i odpočet pracují vždy s touto kopií.
         // ----------------------------------------------------------------
         function nactiZaznamy() {
-            try {
-                const data = localStorage.getItem(KLIC_STORAGE);
-                if (!data) return [];
-                const zaznamy = JSON.parse(data);
-                return Array.isArray(zaznamy) ? zaznamy : [];
-            } catch (e) {
-                // Pokud je obsah poškozen, raději vrátíme prázdné pole
-                console.error('Chyba při načítání záznamů:', e);
-                return [];
+            return zaznamyCache;
+        }
+
+        // ----------------------------------------------------------------
+        // Stáhne všechny záznamy z databáze do lokální kopie.
+        // Vrací true, pokud se data oproti minule změnila.
+        // ----------------------------------------------------------------
+        async function synchronizujZDB() {
+            const { data, error } = await supabase
+                .from(TABULKA)
+                .select('*')
+                .order('datum', { ascending: true })
+                .order('id', { ascending: true });
+
+            if (error) {
+                console.error('Chyba při načítání z databáze:', error);
+                return false;
+            }
+
+            const nova = Array.isArray(data) ? data : [];
+            // Porovnáme, jestli se obsah změnil (kvůli zbytečnému překreslování)
+            const zmeneno = JSON.stringify(nova) !== JSON.stringify(zaznamyCache);
+            zaznamyCache = nova;
+            return zmeneno;
+        }
+
+        // ----------------------------------------------------------------
+        // Vloží nový záznam do databáze
+        // ----------------------------------------------------------------
+        async function vlozZaznamDoDB(zaznam) {
+            const { error } = await supabase.from(TABULKA).insert(zaznam);
+            if (error) {
+                console.error('Chyba při ukládání do databáze:', error);
+                throw error;
             }
         }
 
         // ----------------------------------------------------------------
-        // Pomocná funkce: uloží pole záznamů zpět do localStorage
+        // Smaže záznam z databáze podle ID
         // ----------------------------------------------------------------
-        function ulozZaznamy(zaznamy) {
-            localStorage.setItem(KLIC_STORAGE, JSON.stringify(zaznamy));
+        async function smazZaznamZDB(id) {
+            const { error } = await supabase
+                .from(TABULKA)
+                .delete()
+                .eq('id', id);
+            if (error) {
+                console.error('Chyba při mazání z databáze:', error);
+                throw error;
+            }
         }
 
         // ----------------------------------------------------------------
@@ -965,7 +1015,7 @@
         // ----------------------------------------------------------------
         // Smaže záznam podle ID (s potvrzením)
         // ----------------------------------------------------------------
-        function smazZaznam(id) {
+        async function smazZaznam(id) {
             // Pojistka: rušit záznamy lze pouze v admin režimu
             if (!adminRezim) {
                 return;
@@ -973,9 +1023,13 @@
             if (!confirm('Opravdu chcete smazat tento záznam?')) {
                 return;
             }
-            const zaznamy = nactiZaznamy().filter(z => z.id !== id);
-            ulozZaznamy(zaznamy);
-            vykresliSeznam();
+            try {
+                await smazZaznamZDB(id);
+                await synchronizujZDB();
+                vykresliSeznam();
+            } catch (e) {
+                alert('Záznam se nepodařilo smazat. Zkontrolujte připojení k internetu.');
+            }
         }
 
         // ----------------------------------------------------------------
@@ -1017,7 +1071,7 @@
         // ----------------------------------------------------------------
         // Zpracuje odeslání formuláře - validace + uložení
         // ----------------------------------------------------------------
-        formular.addEventListener('submit', (event) => {
+        formular.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             // Načteme hodnoty a očistíme od bílých znaků
@@ -1061,9 +1115,15 @@
                 vytvoreno: new Date().toISOString()
             };
 
-            const zaznamy = nactiZaznamy();
-            zaznamy.push(novyZaznam);
-            ulozZaznamy(zaznamy);
+            // Uložíme do sdílené databáze, aby záznam viděli i kolegové
+            try {
+                await vlozZaznamDoDB(novyZaznam);
+            } catch (e) {
+                zobrazChybu('// CHYBA: Uložení selhalo, zkontrolujte připojení');
+                return;
+            }
+
+            await synchronizujZDB();
 
             // Resetujeme formulář a zobrazíme aktualizovaný seznam
             formular.reset();
@@ -1082,17 +1142,38 @@
         // - poznámka: necháváme možnost zadat i minulé datum kvůli historickým záznamům?
         //   Pro jednoduchost necháváme volnost - validace pouze na vyplněnost.
 
-        // První vykreslení seznamu
-        vykresliSeznam();
-
-        // Nastartujeme interval pro aktualizaci odpočtů (každou vteřinu)
-        setInterval(() => {
-            aktualizujVsechnyOdpocty();
-            aktualizujHodinyHlavicka();
-        }, 1000);
-
-        // První zobrazení hodin v hlavičce (aby tam neskákalo --:--:--)
+        // Hodiny v hlavičce běží nezávisle na databázi
         aktualizujHodinyHlavicka();
+        setInterval(aktualizujHodinyHlavicka, 1000);
+
+        // Hlavní spuštění aplikace
+        async function spustAplikaci() {
+            // Pojistka: pokud nejsou vyplněné údaje k databázi
+            if (SUPABASE_URL.startsWith('SEM_VLOZ') || SUPABASE_ANON_KEY.startsWith('SEM_VLOZ')) {
+                seznamElement.innerHTML =
+                    '<div class="prazdny-seznam">// Databáze není nastavena – ' +
+                    'do kódu je třeba doplnit SUPABASE_URL a SUPABASE_ANON_KEY</div>';
+                return;
+            }
+
+            // První načtení dat z databáze a vykreslení
+            await synchronizujZDB();
+            vykresliSeznam();
+
+            // Každou vteřinu aktualizujeme živé odpočty (z lokální kopie)
+            setInterval(aktualizujVsechnyOdpocty, 1000);
+
+            // Každých 5 vteřin se doptáme databáze, jestli někdo
+            // (jiný kolega) nepřidal nebo nesmazal záznam
+            setInterval(async () => {
+                const zmeneno = await synchronizujZDB();
+                if (zmeneno) {
+                    vykresliSeznam();
+                }
+            }, 5000);
+        }
+
+        spustAplikaci();
     </script>
 </body>
 </html>
