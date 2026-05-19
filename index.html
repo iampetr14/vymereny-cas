@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vyměřený čas</title>
+
+    <!-- Google Fonts: Orbitron pro nadpisy, Share Tech Mono pro digitální čas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <style>
+        /* === GLOBÁLNÍ RESET A ZÁKLADNÍ STYLY === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Barevná paleta inspirovaná filmem In Time */
+            --barva-pozadi: #000000;
+            --barva-pozadi-2: #0a1520;
+            --barva-pozadi-3: #061018;
+            --zelena: #00ff88;
+            --zelena-tlumena: #00cc6a;
+            --zelena-zar: rgba(0, 255, 136, 0.6);
+            --cervena: #ff2244;
+            --cervena-zar: rgba(255, 34, 68, 0.6);
+            --text-svetly: #cce8d8;
+            --text-tlumeny: #6a8a7a;
+            --okraj: rgba(0, 255, 136, 0.3);
+        }
+
+        body {
+            /* Tmavé futuristické pozadí s gradientem */
+            background: radial-gradient(ellipse at top, var(--barva-pozadi-2) 0%, var(--barva-pozadi) 50%, var(--barva-pozadi-3) 100%);
+            min-height: 100vh;
+            color: var(--text-svetly);
+            font-family: 'Share Tech Mono', monospace;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Jemný scanline efekt na pozadí pro futuristický nádech */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 255, 136, 0.02) 0px,
+                rgba(0, 255, 136, 0.02) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .kontejner {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* === HLAVIČKA === */
+        .hlavicka {
+            text-align: center;
+            margin-bottom: 50px;
+            padding: 30px 20px;
+        }
+
+        /* Hlavní nadpis se zeleným glow efektem */
+        .hlavni-nadpis {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: clamp(2rem, 6vw, 4rem);
+            color: var(--zelena);
+            letter-spacing: 0.3em;
+            text-shadow:
+                0 0 10px var(--zelena-zar),
+                0 0 20px var(--zelena-zar),
+                0 0 40px var(--zelena-zar),
+                0 0 80px rgba(0, 255, 136, 0.3);
+            animation: pulzujiciNadpis 3s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes pulzujiciNadpis {
+            0%, 100% {
+                text-shadow:
+                    0 0 10px var(--zelena-zar),
+                    0 0 20px var(--zelena-zar),
+                    0 0 40px var(--zelena-zar);
+            }
+            50% {
+                text-shadow:
+                    0 0 15px var(--zelena-zar),
+                    0 0 30px var(--zelena-zar),
+                    0 0 60px var(--zelena-zar),
+                    0 0 100px rgba(0, 255, 136, 0.4);
+            }
+        }
+
+        .podnadpis {
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--text-tlumeny);
+            font-size: clamp(0.9rem, 2vw, 1.2rem);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        /* === STYLIZOVANÉ PŘEDLOKTÍ S DIGITÁLNÍM ČASEM === */
+        .predlokti-wrap {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .predlokti-svg {
+            width: 200px;
+            height: 90px;
+            filter: drop-shadow(0 0 8px var(--zelena-zar));
+        }
+
+        /* === HODINY V HLAVIČCE === */
+        .hodiny-info {
+            text-align: center;
+            margin-top: 20px;
+            color: var(--text-tlumeny);
+            font-size: 0.9rem;
+            letter-spacing: 0.15em;
+        }
+
+        .aktualni-cas {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--zelena);
+            margin-top: 8px;
+            text-shadow: 0 0 8px var(--zelena-zar);
+            letter-spacing: 0.1em;
+        }
+
+        /* === FORMULÁŘ === */
+        .formular-sekce {
+            background: rgba(10, 25, 35, 0.6);
+            border: 1px solid var(--okraj);
+            border-radius: 4px;
+            padding: 35px 25px;
+            margin-bottom: 40px;
+            box-shadow:
+                0 0 20px rgba(0, 255, 136, 0.1),
+                inset 0 0 30px rgba(0, 255, 136, 0.03);
+            backdrop-filter: blur(4px);
+        }
+
+        .formular-nadpis {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: var(--zelena);
+            margin-bottom: 25px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--zelena-zar);
+            border-bottom: 1px solid var(--okraj);
+            padding-bottom: 12px;
+        }
+
+        .formular-skupina {
+            margin-bottom: 20px;
+        }
+
+        .formular-skupina label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-svetly);
+            font-size: 0.85rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .formular-skupina label .povinne {
+            color: var(--cervena);
+            margin-left: 4px;
+        }
+
+        /* Vstupní pole - tmavé s glow při focus */
+        .formular-skupina input,
+        .formular-skupina textarea {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--okraj);
+            border-radius: 3px;
+            color: var(--zelena);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1rem;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+
+        .formular-skupina input:focus,
+        .formular-skupina textarea:focus {
+            outline: none;
+            border-color: var(--zelena);
+            box-shadow:
+                0 0 10px var(--zelena-zar),
+                inset 0 0 8px rgba(0, 255, 136, 0.1);
+            background: rgba(0, 30, 15, 0.4);
+        }
+
+        .formular-skupina textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        /* Stylování date inputu - aby vypadal jednotně */
+        .formular-skupina input[type="date"] {
+            color-scheme: dark;
+        }
+
+        /* Tlačítko ULOŽIT ZÁZNAM s glow a hover pulzováním */
+        .tlacitko-ulozit {
+            width: 100%;
+            padding: 15px 25px;
+            background: transparent;
+            border: 2px solid var(--zelena);
+            color: var(--zelena);
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+            text-shadow: 0 0 8px var(--zelena-zar);
+            box-shadow:
+                0 0 15px rgba(0, 255, 136, 0.3),
+                inset 0 0 15px rgba(0, 255, 136, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .tlacitko-ulozit:hover {
+            background: rgba(0, 255, 136, 0.1);
+            box-shadow:
+                0 0 25px var(--zelena-zar),
+                inset 0 0 20px rgba(0, 255, 136, 0.15);
+            animation: pulzovaniTlacitka 1.2s ease-in-out infinite;
+        }
+
+        @keyframes pulzovaniTlacitka {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow:
+                    0 0 25px var(--zelena-zar),
+                    inset 0 0 20px rgba(0, 255, 136, 0.15);
+            }
+            50% {
+                transform: scale(1.02);
+                box-shadow:
+                    0 0 35px var(--zelena-zar),
+                    inset 0 0 25px rgba(0, 255, 136, 0.2);
+            }
+        }
+
+        .tlacitko-ulozit:active {
+            transform: scale(0.98);
+        }
+
+        /* === SEZNAM ZÁZNAMŮ === */
+        .seznam-sekce {
+            margin-top: 30px;
+        }
+
+        .seznam-nadpis {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.3rem;
+            color: var(--zelena);
+            margin-bottom: 20px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--zelena-zar);
+            text-align: center;
+        }
+
+        .prazdny-seznam {
+            text-align: center;
+            color: var(--text-tlumeny);
+            font-style: italic;
+            padding: 30px;
+            border: 1px dashed var(--okraj);
+            border-radius: 4px;
+        }
+
+        /* === ADMIN PŘEPÍNAČ === */
+        .admin-listek {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 25px;
+        }
+
+        .tlacitko-admin {
+            background: transparent;
+            border: 1px solid var(--okraj);
+            color: var(--text-tlumeny);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 10px 18px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tlacitko-admin:hover {
+            border-color: var(--zelena);
+            color: var(--zelena);
+            box-shadow: 0 0 10px var(--zelena-zar);
+        }
+
+        /* Aktivní admin režim - zvýrazněné tlačítko */
+        body.admin-rezim .tlacitko-admin {
+            border-color: var(--cervena);
+            color: var(--cervena);
+            text-shadow: 0 0 6px var(--cervena-zar);
+            box-shadow: 0 0 12px var(--cervena-zar);
+        }
+
+        body.admin-rezim .tlacitko-admin:hover {
+            border-color: var(--cervena);
+            color: var(--cervena);
+            box-shadow: 0 0 18px var(--cervena-zar);
+        }
+
+        /* Nadpis sekce s vypršelým časem - červený */
+        .seznam-nadpis-vyprsel {
+            color: var(--cervena);
+            text-shadow: 0 0 10px var(--cervena-zar);
+        }
+
+        /* Oddělení sekce vypršelých od aktivních */
+        .seznam-sekce-vyprsel {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 34, 68, 0.3);
+        }
+
+        /* Karta jednoho záznamu */
+        .karta-zaznamu {
+            background: rgba(10, 25, 35, 0.7);
+            border: 1px solid var(--okraj);
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            box-shadow:
+                0 0 15px rgba(0, 255, 136, 0.08),
+                inset 0 0 20px rgba(0, 255, 136, 0.02);
+            transition: all 0.3s ease;
+        }
+
+        .karta-zaznamu:hover {
+            box-shadow:
+                0 0 20px rgba(0, 255, 136, 0.15),
+                inset 0 0 25px rgba(0, 255, 136, 0.04);
+            transform: translateY(-2px);
+        }
+
+        /* Zvýraznění karty pokud čas vypršel */
+        .karta-zaznamu.vyprseli {
+            border-color: var(--cervena);
+            box-shadow:
+                0 0 20px var(--cervena-zar),
+                inset 0 0 25px rgba(255, 34, 68, 0.05);
+            animation: pulzovaniVyprseli 2s ease-in-out infinite;
+        }
+
+        @keyframes pulzovaniVyprseli {
+            0%, 100% {
+                box-shadow:
+                    0 0 20px var(--cervena-zar),
+                    inset 0 0 25px rgba(255, 34, 68, 0.05);
+            }
+            50% {
+                box-shadow:
+                    0 0 35px var(--cervena-zar),
+                    inset 0 0 35px rgba(255, 34, 68, 0.1);
+            }
+        }
+
+        .karta-hlavicka {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+
+        .karta-jmeno {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            color: var(--zelena);
+            text-shadow: 0 0 8px var(--zelena-zar);
+            letter-spacing: 0.1em;
+        }
+
+        .karta-zaznamu.vyprseli .karta-jmeno {
+            color: var(--cervena);
+            text-shadow: 0 0 8px var(--cervena-zar);
+        }
+
+        .karta-datum {
+            color: var(--text-tlumeny);
+            font-size: 0.85rem;
+            margin-top: 4px;
+            letter-spacing: 0.1em;
+        }
+
+        /* Tlačítko X pro smazání - ve výchozím stavu skryté,
+           odkryje se až po zapnutí admin režimu */
+        .tlacitko-smazat {
+            background: transparent;
+            border: 1px solid var(--okraj);
+            color: var(--text-tlumeny);
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-family: 'Orbitron', sans-serif;
+            transition: all 0.3s ease;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* V admin režimu se mazací křížky zobrazí */
+        body.admin-rezim .tlacitko-smazat {
+            display: flex;
+        }
+
+        .tlacitko-smazat:hover {
+            border-color: var(--cervena);
+            color: var(--cervena);
+            box-shadow: 0 0 10px var(--cervena-zar);
+            text-shadow: 0 0 5px var(--cervena-zar);
+        }
+
+        /* Odpočet v kartě */
+        .odpocet {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 20px 0 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 255, 136, 0.15);
+            border-radius: 3px;
+        }
+
+        .odpocet-jednotka {
+            text-align: center;
+        }
+
+        .odpocet-cislo {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: clamp(1.4rem, 4vw, 2rem);
+            color: var(--zelena);
+            text-shadow:
+                0 0 8px var(--zelena-zar),
+                0 0 16px rgba(0, 255, 136, 0.4);
+            line-height: 1;
+        }
+
+        .karta-zaznamu.vyprseli .odpocet-cislo {
+            color: var(--cervena);
+            text-shadow:
+                0 0 8px var(--cervena-zar),
+                0 0 16px rgba(255, 34, 68, 0.4);
+        }
+
+        .odpocet-popisek {
+            font-size: 0.7rem;
+            color: var(--text-tlumeny);
+            margin-top: 6px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        /* Zpráva ČAS VYPRŠEL - místo odpočtu */
+        .cas-vyprsel-zprava {
+            text-align: center;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: clamp(1.4rem, 4vw, 2rem);
+            color: var(--cervena);
+            letter-spacing: 0.3em;
+            text-shadow:
+                0 0 10px var(--cervena-zar),
+                0 0 20px var(--cervena-zar),
+                0 0 40px var(--cervena-zar);
+            padding: 25px 10px;
+            background: rgba(40, 0, 5, 0.4);
+            border: 1px solid var(--cervena);
+            border-radius: 3px;
+            margin: 20px 0 15px;
+            animation: blikani 1.5s ease-in-out infinite;
+        }
+
+        @keyframes blikani {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Poznámka v kartě */
+        .karta-poznamka {
+            color: var(--text-svetly);
+            font-size: 0.95rem;
+            margin-top: 15px;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid var(--zelena);
+            border-radius: 2px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .karta-zaznamu.vyprseli .karta-poznamka {
+            border-left-color: var(--cervena);
+        }
+
+        /* Chybová zpráva u formuláře */
+        .chybova-zprava {
+            color: var(--cervena);
+            font-size: 0.85rem;
+            margin-top: 10px;
+            text-align: center;
+            min-height: 1.2em;
+            text-shadow: 0 0 5px var(--cervena-zar);
+            letter-spacing: 0.1em;
+        }
+
+        /* === RESPONZIVITA - mobilní zobrazení === */
+        @media (max-width: 600px) {
+            .kontejner {
+                padding: 20px 15px;
+            }
+
+            .formular-sekce {
+                padding: 25px 18px;
+            }
+
+            .karta-zaznamu {
+                padding: 15px;
+            }
+
+            .odpocet {
+                gap: 6px;
+                padding: 10px 8px;
+            }
+
+            .odpocet-popisek {
+                font-size: 0.6rem;
+            }
+
+            .karta-hlavicka {
+                flex-wrap: wrap;
+            }
+
+            .predlokti-svg {
+                width: 160px;
+                height: 70px;
+            }
+        }
+
+        /* Pata stránky */
+        .pata {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: var(--text-tlumeny);
+            font-size: 0.8rem;
+            letter-spacing: 0.15em;
+            border-top: 1px solid var(--okraj);
+        }
+    </style>
+</head>
+<body>
+    <div class="kontejner">
+
+        <!-- HLAVIČKA STRÁNKY -->
+        <header class="hlavicka">
+            <h1 class="hlavni-nadpis">VYMĚŘENÝ ČAS</h1>
+            <p class="podnadpis">Čas, který ti zbývá ve firmě</p>
+
+            <!-- Stylizované předloktí s digitálním časem (SVG) -->
+            <div class="predlokti-wrap">
+                <svg class="predlokti-svg" viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Obrys předloktí -->
+                    <path d="M 10 50 Q 30 35, 60 38 L 140 38 Q 170 35, 190 50 Q 170 65, 140 62 L 60 62 Q 30 65, 10 50 Z"
+                          fill="none" stroke="#00ff88" stroke-width="1.5" opacity="0.7"/>
+                    <!-- Digitální displej na předloktí -->
+                    <rect x="70" y="42" width="60" height="16" fill="#000" stroke="#00ff88" stroke-width="1" rx="2"/>
+                    <text x="100" y="54" font-family="Share Tech Mono, monospace" font-size="10"
+                          fill="#00ff88" text-anchor="middle" id="svg-cas">00:00:00</text>
+                    <!-- Dekorativní linky znázorňující "kód v kůži" -->
+                    <line x1="20" y1="45" x2="55" y2="45" stroke="#00ff88" stroke-width="0.5" opacity="0.4"/>
+                    <line x1="20" y1="55" x2="55" y2="55" stroke="#00ff88" stroke-width="0.5" opacity="0.4"/>
+                    <line x1="145" y1="45" x2="180" y2="45" stroke="#00ff88" stroke-width="0.5" opacity="0.4"/>
+                    <line x1="145" y1="55" x2="180" y2="55" stroke="#00ff88" stroke-width="0.5" opacity="0.4"/>
+                </svg>
+            </div>
+
+            <!-- Aktuální čas v hlavičce -->
+            <div class="hodiny-info">
+                <div>SYSTÉMOVÝ ČAS</div>
+                <div class="aktualni-cas" id="aktualni-cas">--:--:--</div>
+            </div>
+        </header>
+
+        <!-- FORMULÁŘ PRO PŘIDÁNÍ ZÁZNAMU -->
+        <section class="formular-sekce">
+            <h2 class="formular-nadpis">// Nový záznam</h2>
+
+            <form id="formular-zaznam" novalidate>
+                <div class="formular-skupina">
+                    <label for="jmeno">Jméno<span class="povinne">*</span></label>
+                    <input type="text" id="jmeno" name="jmeno" maxlength="50" autocomplete="off">
+                </div>
+
+                <div class="formular-skupina">
+                    <label for="prijmeni">Příjmení<span class="povinne">*</span></label>
+                    <input type="text" id="prijmeni" name="prijmeni" maxlength="50" autocomplete="off">
+                </div>
+
+                <div class="formular-skupina">
+                    <label for="datum-odchodu">Datum odchodu z firmy<span class="povinne">*</span></label>
+                    <input type="date" id="datum-odchodu" name="datum-odchodu">
+                </div>
+
+                <div class="formular-skupina">
+                    <label for="poznamka">Poznámky pro kolegy</label>
+                    <textarea id="poznamka" name="poznamka" rows="4" maxlength="500"
+                              placeholder="Volitelná zpráva pro kolegy..."></textarea>
+                </div>
+
+                <button type="submit" class="tlacitko-ulozit">&gt; Uložit záznam</button>
+                <div class="chybova-zprava" id="chybova-zprava" role="alert"></div>
+            </form>
+        </section>
+
+        <!-- ADMIN PŘEPÍNAČ - odkrývá mazání záznamů -->
+        <div class="admin-listek">
+            <button type="button" class="tlacitko-admin" id="tlacitko-admin"
+                    aria-pressed="false">Admin režim: VYPNUT</button>
+        </div>
+
+        <!-- SEZNAM AKTIVNÍCH ZÁZNAMŮ -->
+        <section class="seznam-sekce">
+            <h2 class="seznam-nadpis">// Aktivní záznamy</h2>
+            <div id="seznam-zaznamu">
+                <!-- Sem se dynamicky vkládají karty aktivních záznamů -->
+            </div>
+        </section>
+
+        <!-- SEKCE ZÁZNAMŮ, KTERÝM VYPRŠEL ČAS -->
+        <section class="seznam-sekce seznam-sekce-vyprsel">
+            <h2 class="seznam-nadpis seznam-nadpis-vyprsel">// Čas vypršel</h2>
+            <div id="seznam-vyprsele">
+                <!-- Sem se dynamicky přesouvají záznamy s vypršelým časem -->
+            </div>
+        </section>
+
+        <footer class="pata">
+            <p>// VYMĚŘENÝ ČAS &middot; INSPIROVÁNO FILMEM IN TIME (2011)</p>
+        </footer>
+    </div>
+
+    <script>
+        // ========================================================
+        // === VYMĚŘENÝ ČAS - JAVASCRIPT LOGIKA ===
+        // ========================================================
+
+        // Klíč pro localStorage, kde se ukládají záznamy
+        const KLIC_STORAGE = 'vymereny_cas_zaznamy';
+
+        // Reference na DOM elementy, které budeme často používat
+        const formular = document.getElementById('formular-zaznam');
+        const inputJmeno = document.getElementById('jmeno');
+        const inputPrijmeni = document.getElementById('prijmeni');
+        const inputDatum = document.getElementById('datum-odchodu');
+        const inputPoznamka = document.getElementById('poznamka');
+        const chybovaZprava = document.getElementById('chybova-zprava');
+        const seznamElement = document.getElementById('seznam-zaznamu');
+        const seznamVyprseleElement = document.getElementById('seznam-vyprsele');
+        const aktualniCasElement = document.getElementById('aktualni-cas');
+        const svgCasElement = document.getElementById('svg-cas');
+        const tlacitkoAdmin = document.getElementById('tlacitko-admin');
+
+        // Stav admin režimu - jen tehdy lze rušit záznamy.
+        // Drží se pouze v paměti relace (po refreshi je opět vypnutý).
+        let adminRezim = false;
+
+        // Pamatuje si poslední množinu ID vypršelých záznamů,
+        // abychom poznali, kdy někomu vypršel čas a je třeba
+        // překreslit seznamy (přesun do sekce "Čas vypršel").
+        let poslednVyprseleIds = '';
+
+        // ----------------------------------------------------------------
+        // Pomocná funkce: získá záznamy z localStorage (vrací pole)
+        // ----------------------------------------------------------------
+        function nactiZaznamy() {
+            try {
+                const data = localStorage.getItem(KLIC_STORAGE);
+                if (!data) return [];
+                const zaznamy = JSON.parse(data);
+                return Array.isArray(zaznamy) ? zaznamy : [];
+            } catch (e) {
+                // Pokud je obsah poškozen, raději vrátíme prázdné pole
+                console.error('Chyba při načítání záznamů:', e);
+                return [];
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // Pomocná funkce: uloží pole záznamů zpět do localStorage
+        // ----------------------------------------------------------------
+        function ulozZaznamy(zaznamy) {
+            localStorage.setItem(KLIC_STORAGE, JSON.stringify(zaznamy));
+        }
+
+        // ----------------------------------------------------------------
+        // Bezpečné vykreslení textu (escape pro HTML)
+        // - chrání proti vložení nechtěného HTML do karet
+        // ----------------------------------------------------------------
+        function escapeHTML(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ----------------------------------------------------------------
+        // Formátování data do českého formátu (DD. MM. YYYY)
+        // ----------------------------------------------------------------
+        function formatujDatum(isoDatum) {
+            const datum = new Date(isoDatum);
+            if (isNaN(datum.getTime())) return isoDatum;
+            const den = String(datum.getDate()).padStart(2, '0');
+            const mesic = String(datum.getMonth() + 1).padStart(2, '0');
+            const rok = datum.getFullYear();
+            return `${den}. ${mesic}. ${rok}`;
+        }
+
+        // ----------------------------------------------------------------
+        // Doplní jednociferné číslo nulou na začátku (např. 5 -> "05")
+        // ----------------------------------------------------------------
+        function paddingNula(cislo) {
+            return String(cislo).padStart(2, '0');
+        }
+
+        // ----------------------------------------------------------------
+        // Vypočítá rozdíl mezi nyní a cílovým datem
+        // - vrací objekt { dny, hodiny, minuty, vteriny, vyprseli }
+        // ----------------------------------------------------------------
+        function vypocitejOdpocet(cilovyDatumIso) {
+            const ted = Date.now();
+            // K cílovému datu přidáme konec dne (23:59:59), aby den D ještě "platil"
+            const cilove = new Date(cilovyDatumIso);
+            cilove.setHours(23, 59, 59, 999);
+            const rozdil = cilove.getTime() - ted;
+
+            if (rozdil <= 0) {
+                return { dny: 0, hodiny: 0, minuty: 0, vteriny: 0, vyprseli: true };
+            }
+
+            // Převedeme milisekundy na jednotlivé jednotky
+            const dny = Math.floor(rozdil / (1000 * 60 * 60 * 24));
+            const hodiny = Math.floor((rozdil % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minuty = Math.floor((rozdil % (1000 * 60 * 60)) / (1000 * 60));
+            const vteriny = Math.floor((rozdil % (1000 * 60)) / 1000);
+
+            return { dny, hodiny, minuty, vteriny, vyprseli: false };
+        }
+
+        // ----------------------------------------------------------------
+        // Vykreslí seznam všech záznamů
+        // ----------------------------------------------------------------
+        function vykresliSeznam() {
+            const zaznamy = nactiZaznamy();
+            seznamElement.innerHTML = '';
+            seznamVyprseleElement.innerHTML = '';
+
+            // Rozdělíme záznamy na aktivní a ty, kterým vypršel čas
+            const aktivni = [];
+            const vyprsele = [];
+            zaznamy.forEach(zaznam => {
+                if (vypocitejOdpocet(zaznam.datum).vyprseli) {
+                    vyprsele.push(zaznam);
+                } else {
+                    aktivni.push(zaznam);
+                }
+            });
+
+            // Aktivní: nejbližší odchod první
+            aktivni.sort((a, b) => new Date(a.datum) - new Date(b.datum));
+            // Vypršelé: naposledy vypršelé nahoře
+            vyprsele.sort((a, b) => new Date(b.datum) - new Date(a.datum));
+
+            // --- Sekce aktivních záznamů ---
+            if (aktivni.length === 0) {
+                seznamElement.innerHTML = '<div class="prazdny-seznam">// Žádné aktivní záznamy</div>';
+            } else {
+                aktivni.forEach(zaznam => {
+                    seznamElement.appendChild(vytvorKartuZaznamu(zaznam));
+                });
+            }
+
+            // --- Sekce záznamů s vypršelým časem ---
+            if (vyprsele.length === 0) {
+                seznamVyprseleElement.innerHTML = '<div class="prazdny-seznam">// Zatím nikomu nevypršel čas</div>';
+            } else {
+                vyprsele.forEach(zaznam => {
+                    seznamVyprseleElement.appendChild(vytvorKartuZaznamu(zaznam));
+                });
+            }
+
+            // Zapamatujeme si aktuální množinu vypršelých ID
+            poslednVyprseleIds = vyprsele.map(z => z.id).sort().join(',');
+        }
+
+        // ----------------------------------------------------------------
+        // Vytvoří DOM element pro jednu kartu záznamu
+        // ----------------------------------------------------------------
+        function vytvorKartuZaznamu(zaznam) {
+            const karta = document.createElement('article');
+            karta.className = 'karta-zaznamu';
+            karta.dataset.id = zaznam.id;
+
+            // Bezpečně escapujeme všechna textová data, aby nedošlo k XSS
+            const jmenoBezpecne = escapeHTML(`${zaznam.jmeno} ${zaznam.prijmeni}`);
+            const datumBezpecne = escapeHTML(formatujDatum(zaznam.datum));
+            const poznamkaBezpecne = zaznam.poznamka ? escapeHTML(zaznam.poznamka) : '';
+
+            // Sestavíme HTML karty
+            karta.innerHTML = `
+                <div class="karta-hlavicka">
+                    <div>
+                        <div class="karta-jmeno">${jmenoBezpecne}</div>
+                        <div class="karta-datum">// Odchod: ${datumBezpecne}</div>
+                    </div>
+                    <button class="tlacitko-smazat" data-id="${zaznam.id}"
+                            title="Smazat záznam" aria-label="Smazat záznam">✕</button>
+                </div>
+                <div class="odpocet-kontejner"></div>
+                ${poznamkaBezpecne ? `<div class="karta-poznamka">${poznamkaBezpecne}</div>` : ''}
+            `;
+
+            // Připojíme handler pro mazání
+            karta.querySelector('.tlacitko-smazat').addEventListener('click', () => {
+                smazZaznam(zaznam.id);
+            });
+
+            // Vykreslíme odpočet (oddělená funkce, protože ho budeme aktualizovat)
+            aktualizujOdpocetVKarte(karta, zaznam);
+
+            return karta;
+        }
+
+        // ----------------------------------------------------------------
+        // Aktualizuje odpočet uvnitř konkrétní karty
+        // - voláno opakovaně každou vteřinu pro živý odpočet
+        // ----------------------------------------------------------------
+        function aktualizujOdpocetVKarte(karta, zaznam) {
+            const odpocet = vypocitejOdpocet(zaznam.datum);
+            const kontejner = karta.querySelector('.odpocet-kontejner');
+            if (!kontejner) return;
+
+            if (odpocet.vyprseli) {
+                // Pokud čas vypršel, zobrazíme červenou zprávu
+                karta.classList.add('vyprseli');
+                kontejner.innerHTML = '<div class="cas-vyprsel-zprava">⏱ Čas vypršel</div>';
+            } else {
+                // Jinak zobrazíme klasický 4-dílný odpočet
+                karta.classList.remove('vyprseli');
+                kontejner.innerHTML = `
+                    <div class="odpocet">
+                        <div class="odpocet-jednotka">
+                            <div class="odpocet-cislo">${paddingNula(odpocet.dny)}</div>
+                            <div class="odpocet-popisek">Dny</div>
+                        </div>
+                        <div class="odpocet-jednotka">
+                            <div class="odpocet-cislo">${paddingNula(odpocet.hodiny)}</div>
+                            <div class="odpocet-popisek">Hodin</div>
+                        </div>
+                        <div class="odpocet-jednotka">
+                            <div class="odpocet-cislo">${paddingNula(odpocet.minuty)}</div>
+                            <div class="odpocet-popisek">Minut</div>
+                        </div>
+                        <div class="odpocet-jednotka">
+                            <div class="odpocet-cislo">${paddingNula(odpocet.vteriny)}</div>
+                            <div class="odpocet-popisek">Vteřin</div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // Aktualizuje VŠECHNY odpočty v seznamu (jednou za vteřinu)
+        // ----------------------------------------------------------------
+        function aktualizujVsechnyOdpocty() {
+            const zaznamy = nactiZaznamy();
+
+            // Zjistíme aktuální množinu vypršelých záznamů
+            const vyprseleIds = zaznamy
+                .filter(z => vypocitejOdpocet(z.datum).vyprseli)
+                .map(z => z.id)
+                .sort()
+                .join(',');
+
+            // Pokud se oproti minule změnila (někomu právě vypršel čas),
+            // překreslíme celé seznamy - záznam se přesune do sekce "Čas vypršel"
+            if (vyprseleIds !== poslednVyprseleIds) {
+                vykresliSeznam();
+                return;
+            }
+
+            // Jinak jen aktualizujeme živé odpočty ve všech kartách
+            const karty = document.querySelectorAll('.karta-zaznamu');
+            karty.forEach(karta => {
+                const id = karta.dataset.id;
+                const zaznam = zaznamy.find(z => z.id === id);
+                if (zaznam) {
+                    aktualizujOdpocetVKarte(karta, zaznam);
+                }
+            });
+        }
+
+        // ----------------------------------------------------------------
+        // Aktualizuje hodiny v hlavičce (systémový čas + SVG displej)
+        // ----------------------------------------------------------------
+        function aktualizujHodinyHlavicka() {
+            const ted = new Date();
+            const cas = `${paddingNula(ted.getHours())}:${paddingNula(ted.getMinutes())}:${paddingNula(ted.getSeconds())}`;
+            aktualniCasElement.textContent = cas;
+            if (svgCasElement) {
+                svgCasElement.textContent = cas;
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // Smaže záznam podle ID (s potvrzením)
+        // ----------------------------------------------------------------
+        function smazZaznam(id) {
+            // Pojistka: rušit záznamy lze pouze v admin režimu
+            if (!adminRezim) {
+                return;
+            }
+            if (!confirm('Opravdu chcete smazat tento záznam?')) {
+                return;
+            }
+            const zaznamy = nactiZaznamy().filter(z => z.id !== id);
+            ulozZaznamy(zaznamy);
+            vykresliSeznam();
+        }
+
+        // ----------------------------------------------------------------
+        // Přepínání admin režimu (odkrývá/skrývá mazací křížky)
+        // ----------------------------------------------------------------
+        function prepniAdminRezim() {
+            adminRezim = !adminRezim;
+            document.body.classList.toggle('admin-rezim', adminRezim);
+            tlacitkoAdmin.textContent = adminRezim
+                ? 'Admin režim: ZAPNUT'
+                : 'Admin režim: VYPNUT';
+            tlacitkoAdmin.setAttribute('aria-pressed', String(adminRezim));
+        }
+
+        tlacitkoAdmin.addEventListener('click', prepniAdminRezim);
+
+        // ----------------------------------------------------------------
+        // Zobrazí chybovou zprávu pod formulářem
+        // ----------------------------------------------------------------
+        function zobrazChybu(text) {
+            chybovaZprava.textContent = text;
+            // Po 4 vteřinách chybu skryjeme
+            if (text) {
+                setTimeout(() => {
+                    if (chybovaZprava.textContent === text) {
+                        chybovaZprava.textContent = '';
+                    }
+                }, 4000);
+            }
+        }
+
+        // ----------------------------------------------------------------
+        // Generuje unikátní ID pro nový záznam
+        // ----------------------------------------------------------------
+        function vygenerujId() {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+        }
+
+        // ----------------------------------------------------------------
+        // Zpracuje odeslání formuláře - validace + uložení
+        // ----------------------------------------------------------------
+        formular.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            // Načteme hodnoty a očistíme od bílých znaků
+            const jmeno = inputJmeno.value.trim();
+            const prijmeni = inputPrijmeni.value.trim();
+            const datum = inputDatum.value;
+            const poznamka = inputPoznamka.value.trim();
+
+            // === VALIDACE POVINNÝCH POLÍ ===
+            if (!jmeno) {
+                zobrazChybu('// CHYBA: Vyplňte jméno');
+                inputJmeno.focus();
+                return;
+            }
+            if (!prijmeni) {
+                zobrazChybu('// CHYBA: Vyplňte příjmení');
+                inputPrijmeni.focus();
+                return;
+            }
+            if (!datum) {
+                zobrazChybu('// CHYBA: Vyberte datum odchodu');
+                inputDatum.focus();
+                return;
+            }
+
+            // Validace platnosti data
+            const datumObjekt = new Date(datum);
+            if (isNaN(datumObjekt.getTime())) {
+                zobrazChybu('// CHYBA: Neplatné datum');
+                inputDatum.focus();
+                return;
+            }
+
+            // === VYTVOŘENÍ A ULOŽENÍ ZÁZNAMU ===
+            const novyZaznam = {
+                id: vygenerujId(),
+                jmeno: jmeno,
+                prijmeni: prijmeni,
+                datum: datum,
+                poznamka: poznamka,
+                vytvoreno: new Date().toISOString()
+            };
+
+            const zaznamy = nactiZaznamy();
+            zaznamy.push(novyZaznam);
+            ulozZaznamy(zaznamy);
+
+            // Resetujeme formulář a zobrazíme aktualizovaný seznam
+            formular.reset();
+            chybovaZprava.textContent = '';
+            vykresliSeznam();
+
+            // Plynulé přesunutí k nově přidanému záznamu
+            seznamElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        // ----------------------------------------------------------------
+        // INICIALIZACE PŘI NAČTENÍ STRÁNKY
+        // ----------------------------------------------------------------
+
+        // Nastavíme minimální datum pro input na dnešek (nelze v minulosti)
+        // - poznámka: necháváme možnost zadat i minulé datum kvůli historickým záznamům?
+        //   Pro jednoduchost necháváme volnost - validace pouze na vyplněnost.
+
+        // První vykreslení seznamu
+        vykresliSeznam();
+
+        // Nastartujeme interval pro aktualizaci odpočtů (každou vteřinu)
+        setInterval(() => {
+            aktualizujVsechnyOdpocty();
+            aktualizujHodinyHlavicka();
+        }, 1000);
+
+        // První zobrazení hodin v hlavičce (aby tam neskákalo --:--:--)
+        aktualizujHodinyHlavicka();
+    </script>
+</body>
+</html>
